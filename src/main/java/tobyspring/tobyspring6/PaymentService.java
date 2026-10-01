@@ -12,21 +12,8 @@ import tools.jackson.databind.ObjectMapper;
 
 public class PaymentService {
     public Payment prepare(Long orderId, String currency, BigDecimal foreignCurrencyAmount) throws IOException {
-        // 환율 가져오기
-        URL url = new URL("https://open.er-api.com/v6/latest/" + currency);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-        String response = br.lines().collect(Collectors.joining());
-        br.close();
-
-        ObjectMapper mapper = new ObjectMapper();
-        ExRateDate data = mapper.readValue(response, ExRateDate.class);
-        BigDecimal exRate = data.rates().get("KRW");
-
-        // 금액 계산
+        BigDecimal exRate = getExRate(currency);
         BigDecimal convertedAmount = foreignCurrencyAmount.multiply(exRate);
-
-        // 유효 시간 계산
         LocalDateTime validUntil = LocalDateTime.now().plusMinutes(30);
 
         return new Payment(
@@ -36,6 +23,19 @@ public class PaymentService {
                 exRate,
                 convertedAmount,
                 validUntil);
+    }
+
+    private static BigDecimal getExRate(String currency) throws IOException {
+        URL url = new URL("https://open.er-api.com/v6/latest/" + currency);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        String response = br.lines().collect(Collectors.joining());
+        br.close();
+
+        ObjectMapper mapper = new ObjectMapper();
+        ExRateDate data = mapper.readValue(response, ExRateDate.class);
+        BigDecimal exRate = data.rates().get("KRW");
+        return exRate;
     }
 
     static void main() throws IOException {
