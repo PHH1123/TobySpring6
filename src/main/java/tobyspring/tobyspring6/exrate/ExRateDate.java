@@ -1,6 +1,4 @@
-package tobyspring.tobyspring6;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+package tobyspring.tobyspring6.exrate;
 
 import java.math.BigDecimal;
 import java.util.Map;
