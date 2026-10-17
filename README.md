@@ -586,7 +586,7 @@ void main() throws InterruptedException {
 }
 ```
 
-### Reference
+### References
 - [쉬운코드 - BJ.10 모니터](https://youtu.be/Dms1oBmRAlo?si=VlppzcQ9AqUgug0Q)
 - [혼자 공부하는 컴퓨터구조 + 운영체제](https://www.hanbit.co.kr/books/혼자-공부하는-컴퓨터-구조-운영체제?code=B9177037040)
 
@@ -650,4 +650,6 @@ pool이라는 용어는 스레드 풀에서만 사용하는 게 아니다.
 `Connection Pool`과 `Process Pool`도 있다.
 여기서 `Connection Pool`은 `TCP 연결`을 하기 위한 풀도 있고 `DB 커넥션`을 연결하기 위한 풀도 있다.
 
+### References
+- [쉬운코드 - BJ.18 스레드 풀(thread pool)](https://youtu.be/B4Of4UgLfWc?si=8PZFmMuCa7W64Q4t)
 
