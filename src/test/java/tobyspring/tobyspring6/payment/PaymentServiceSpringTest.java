@@ -28,7 +28,7 @@ public class PaymentServiceSpringTest {
     ExRateProviderStub exRateProviderStub;
 
     @Test
-    void convertedAmount() throws IOException {
+    void convertedAmount() {
         Payment payment = paymentService.prepare(1L, "USD", BigDecimal.TEN);
 
         Assertions.assertThat(payment.getExRate()).isEqualByComparingTo(BigDecimal.valueOf(1_000));
@@ -42,7 +42,7 @@ public class PaymentServiceSpringTest {
     }
 
     @Test
-    void validUntil() throws IOException {
+    void validUntil() {
         Payment payment = paymentService.prepare(1L, "USD", TEN);
 
         // valid until이 prepare() 30분 뒤로 설정됐는가?
