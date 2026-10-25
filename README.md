@@ -304,6 +304,7 @@ ENUM은 상수 역할을 하는 식별자들의 집합을 이루는 자료형이
 > 직접 만들지 않은 코드, 라이브러리, 레거시 시스템 대한 테스트
 > 테스트 대상의 사용방법을 익히고 동작방식을 확인하는데 유용하다.
 > 외부 기술, 서비스가 버전이 올라갔을 때 이전과 동일하게 동작하는지 확인할 수도 있다.
+>
 > -토비의 스프링6-
 
 ### 도메인 모델 아키텍처 패턴과 테스트의 관련
@@ -332,6 +333,99 @@ void test() {
 
 
 [//]: # (----------------------------------------------------------------------------------)
+
+
+
+
+## Week 7~8
+
+### 템플릿
+> 코드 중에서 변경이 거의 일어나지 않으며 일정한 패턴으로 유지되 특성을 가진 부분을
+> 자유롭게 변경되는 성질을 가진 부분으로부터 독립시켜서 효과적으로 활용할 수 있도록 하는 방법
+>
+> -토비의 스프링6-
+
+`변경이 거의 일어나지 않는 부분`은 `템플릿(Template)`을 말하며,
+`자유롭게 변경되는 부분`은 `콜백(Callback)`을 말한다.
+
+#### 템플릿 메서드 패턴
+템플릿 메서드 패턴은 상속을 이용한 방법이다.
+즉, 슈퍼 클래스에 템플릿을 만들고 서브 클래스에서 메서드를 오버라이딩해서 구현하는 방식이다.
+
+상속보다 더 안전하고 좋은 합성이라는 게 생겨서 상속이 필요한 몇몇 경우 아니면 굳이 사용하진 않는다.
+
+#### 스프링이 제공하는 템플릿
+- `RestTemplate`: API를 요청하는 기능을 템플릿 패턴을 이용하여 제공한다.
+- `JdbcTemplate`: Java Database Connectivity 기술을 템플릿 패턴을 이용하여 제공한다.
+- `JmsTemplate`: Java Message Service 기술을 템플릿 패턴을 이용하여 제공한다.
+- `TransactionTemplate`: 트랜잭션 기술을 템플릿 패턴을 이용하여 제공한다.
+- `JpaTemplate`: Java Persistence Api 기술을 템플릿 패턴을 이용하여 제공한다.
+- `HibernateTemplate`: Hibernate 기술을 템플릿 패턴을 이용하여 제공한다. 
+
+### 콜백
+콜백은 실행할 함수를 전달해주는 것이다.
+자바에서는 콜백을 사용하게 되면 `SAM(Single Abstract Method)`이라는 하나의 메서드만 가진 인터페이스의 오브젝트를 정의해서 사용 또는 `익명 클래스`를 사용하거나 `람다` 오브젝트를 사용한다.
+그리고 콜백으로 템플릿의 메서드를 구현하는 것을 `메서드 주입` 또는 `메서드 호출 주입(method call injection)`이라고 부른다.
+콜백을 사용하지 않고 
+
+#### 전략 패턴
+전략 패턴은 합성을 이용한 방법으로 다양한 구현체를 바꿔 사용하는 것이다.
+
+#### 디폴트 콜백
+쉽게 말해, 기본 콜백을 정의해놓는 것이다.
+위에서 봤듯이 구현 오브젝트 또는 익명 클래스, 람다 함수 모두 가능하다.
+
+### RestTemplate & RestClient
+`RestTemplate`이 표준이었지만 템플릿 메서드 패턴을 활용했었기 때문에 오버로딩으로 수많은 메서드가 만들어졌다.
+`RestClient`는 체이닝 패턴을 사용했으며 간결하고 사용하기 편해져 공식적으로 `RestTemplate`은 `Deprecated` 되었으며, `RestClient`를 사용하면 된다.
+
+#### RestTemplate 사용 코드
+```java
+public BigDecimal getExRate(String currency) {
+    String url = "https://open.er-api.com/v6/latest/" + currency;
+
+    return restTemplate.getForObject(url, ExRateDate.class)
+            .rates()
+            .get("KRW");
+}
+```
+
+#### RestClient 사용 코드
+```java
+public BigDecimal getExRate(String currency) {
+    String url = "https://open.er-api.com/v6/latest/" + currency;
+
+    return restClient.get()
+            .uri(url)
+            .retrieve()
+            .body(ExRateDate.class)
+            .rates()
+            .get("KRW");
+}
+```
+
+### try-with-resources
+자바7부터 `try-with-resources`라는 구문이 추가되었다.
+
+기존에 스트림을 열면 `close()`로 닫아줘야 한다.
+하지만 `try-with-resources` 구문을 사용하면 자동으로 `close()` 해준다.
+
+`AutoCloseable 인터페이스`의 `close() 메서드`를 구현한 클래스만 사용할 수 있다.
+
+#### 코드
+```java
+try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+    
+}
+```
+
+
+
+
+
+
+[//]: # (----------------------------------------------------------------------------------)
+
 
 
 
@@ -653,3 +747,389 @@ pool이라는 용어는 스레드 풀에서만 사용하는 게 아니다.
 ### References
 - [쉬운코드 - BJ.18 스레드 풀(thread pool)](https://youtu.be/B4Of4UgLfWc?si=8PZFmMuCa7W64Q4t)
 
+
+
+
+[//]: # (----------------------------------------------------------------------------------)
+
+
+
+
+## Week 7~8
+
+### Stored Function
+- 사용자가 정의한 함수
+- DBMS에 저장되고 사용하는 함수
+- SQL의 `select`, `insert`, `update`, `delete`문에서 사용할 수 있다.
+
+#### 언제 사용하는 것이 좋을까?
+- `비즈니스 로직`은 `자주 변경`될 수 있으므로 `유지보수`가 간편하고 `테스트`하기 쉬운 서버에서 관리하는 것이 좋다.
+- 그렇다면 `함수`에는 비즈니스 로직을 담는 코드보다는 `util 함수`를 사용하는 것이 가장 좋아보인다.
+- 아래 예제에서 `1번은 비즈니스 로직이 약간` 들어가 있고, `2번은 util`이다. `3번은 완변한 비즈니스 로직`이다.
+
+#### 문법
+함수 작성 중 `세미콜론(;)`이 나오게 되면 RDBMS는 함수 작성을 마친줄 안다.
+그래서 `delimiter $$`를 달아줘서 $$가 나오면 함수 작성을 마치게 한다.
+마지막으로 밑에 `delimiter ;`를 작성하여 원래대로 돌려준다.
+변수 선언은 `DECLARE` 또는 `@변수명`으로 작성할 수 있다.
+`@변수명`은 세션에서 유지되는 사용자 지정 변수이다.
+```mysql
+delimiter $$
+CREATE FUNCTiON [DB이름.]함수이름([인자 타입])
+RETURNS 반환자료타입
+BEGIN
+    DECLARE 변수명 타입;
+    RETURN 반환값;
+END
+$$
+delimiter ;
+```
+
+#### 함수 삭제
+```sql
+DROP FUNCTION stored_function_name;
+```
+
+#### 등록된 함수 확인
+```mysql
+SHOW FUNCTION STATUS where DB = 'db_name';
+```
+
+#### 등록된 함수 상세 확인
+```mysql
+SHOW CREATE FUNCTION function_name;
+```
+
+#### 예제1
+- 임직원의 ID를 열자 정수로 랜덤하게 발급하고 싶다.
+- ID의 맨 앞자리는 1로 고정이다.
+NO SQL은 mysql에서 사용하는 문법이다.
+```mysql
+delimiter $$
+CREATE FUNCTION id_generator()
+RETURNS int
+NO SQL
+BEGIN
+    RETURN (1000000000 + floor(rand() * 1000000000));
+END
+$$
+delimiter ;
+```
+
+#### 예제2
+- 부서의 ID를 파라미터로 받으면 해당 부서의 평균 연봉을 알려주는 함수
+READS SQL DATA 는 mysql에서 사용하는 문법이다.
+```mysql
+delimiter $$
+CREATE FUNCTION dept_avg_salary(d_id int)
+RETURNS int
+READS SQL DATA 
+BEGIN 
+    DECLARE avg_sal int;
+    select avg(salary) into avg_sal
+                        from employee
+                        where dept_id = d_id;
+    RETURN avg_sal;
+END
+$$
+delimiter ;
+```
+
+- 변수 선언 생략
+```mysql
+delimiter $$
+CREATE FUNCTION dept_avg_salary(d_id int)
+RETURNS int
+READS SQL DATA 
+BEGIN 
+    select avg(salary) into @avg_sal
+                        from employee
+                        where dept_id = d_id;
+    RETURN @avg_sal;
+END
+$$
+delimiter ;
+```
+
+#### 예제3
+- 졸업 요건 중 하나인 토익 800이상을 충족하는지 검사
+```mysql
+delimiter $$
+CREATE FUNCTION toeic_pass_fail(toeic_score int)
+RETURNS int
+NO SQL
+BEGIN
+    DECLARE pass_fail char(4);
+    IF toeic_score is null THEN SET pass_fail = 'fail';
+    ELSEIF toeic_score < 800 THEN SET pass_fail = 'fail';
+    ELSE SET pass_fail = 'pass';
+    END IF;
+    RETURN pass_fail;
+END
+$$
+delimiter ;
+```
+
+### Stored Procedure
+- 사용자가 정의한 함수
+- DBMS에 저장되고 사용하는 함수
+- 구체적인 하나의 태스크(task)를 수행한다.
+
+#### 문법
+- 인자로 `IN`, `OUT`, `INOUT`을 설정할 수 있으며 기본값은 `IN`이다.
+- RETURN을 사용할 수 없다.
+- 반환해야 한다면 인자로 `OUT` 또는 `INOUT`을 사용한다.
+```mysql
+delimiter $$
+CREATE PROCEDURE [DB이름.]프로시저이름([IN, OUT, INOUT] 인자 타입)
+BEGIN
+    
+END
+$$
+delimitier ;
+```
+
+#### 예제1
+- 두 정수의 곱셈 결과를 가져오는 프로시저
+```mysql
+delimiter $$
+CREATE PROCEDURE product(IN a int, IN b int, OUT result int)
+BEGIN
+    SET result = a * b;
+END
+$$
+delimiter ;
+
+call product(5, 7, @result);
+select @result;
+```
+
+#### 예제2
+- 두 정수를 맞바꾸는 프로시저
+```mysql
+delimiter $$
+CREATE PROCEDURE swap(INOUT a int, INOUT b int)
+BEGIN
+    set @temp = a;
+    set a = b;
+    set b = @temp;
+END
+$$
+delimiter ;
+
+set @a = 5, @b = 7;
+call swap(@a, @b);
+select @a, @b;
+```
+
+#### 예제3
+- 각 부서별 평균 연봉을 가져오는 프로시저
+```mysql
+delimiter $$
+CREATE PROCEDURE get_dept_avg_salary()
+BEGIN 
+    select dept_id, avg(salary)
+    from employee
+    group by dept_id;
+END
+$$
+delimiter ;
+
+call get_dept_avg_salary();
+```
+
+#### 예제4
+- 사용자가 프로필 닉네임을 바꾸면 이전 닉네임을 로그에 저장하 새 닉네임으로 업데이트하는 프로시저
+```mysql
+delimiter $$
+CREATE PROCEDURE change_nickname(user_id int, new_nickname varchar(30))
+BEGIN 
+    insert into nickname_logs(
+         select id, nickname, now() from users where id = user_id
+    );
+    update users set nickname = new_nickname where id = user_id;
+END
+$$
+delimiter ;
+
+select * from users;
+select * from nickname_logs;
+```
+
+### Function VS Procedure
+- 둘 모두 반환 값을 줄 수는 있으나, `Function은 반환 값 한 개`, `Procedure는 반환 값 여러 개`이다.
+- 가장 큰 차이점 두 개가 있다.
+  - SQL문에서 사용할 수 있느냐 없느냐
+    - 함수 `select func() from ...;`
+    - 프로시저 `call proc();`
+  - 트랜잭션을 사용하느냐 안하느냐
+    - 함수는 멱등성이 있는 조회 쿼리 외에는 변경이 되는 쿼리를 선언은 할 수 있지만 실행하기는 어렵다.
+      - 쿼리문 안에서 호출 ❌ `select user_name, log_and_return_count('조회함') from users`
+      - 단독으로 호출 ✅ `set @result_count = log_and_return_count('단독 실행')`
+    - `함수의 목적` 자체가 `사이드 이펙트가 없는` 유틸이다.
+      - 그래서 트랜잭션을 사용해서 `커밋과 롤백`이 가능하다면 사이드 이펙트가 반드시 생긴다.
+    - `프로시저의 목적`은 반대로 `사이드 이펙트를 일으키는 것`이다.
+      - 그래서 트랜잭션을 사용하고 `커밋과 롤백`이 가능하다.
+
+MySQL, Oracle, SQL Server, PostgreSQL의 공통적인 부분을 기준
+
+|                  |                   FUNCTION                    |                PROCEDURE                |
+|:----------------:|:---------------------------------------------:|:---------------------------------------:|
+|    create 문법     |              CREATE FUNCTION ...              |          CREATE PROCEDURE ...           |
+| return 키워드로 값 반환 |     가능<br/>(MySQL, SQL Server는 값 반환라면 필수)     | 불가능<br/>(SQL server는 상태코드 반환용으로 사용 가능)  |
+|   파라미터 값(들) 반환   | 일부 가능<br/>(Oracle 가능하나 권장 안 함, PostgreSQL 가능) |         가능<br/>(값(들)을 반환하려면 필수)         |
+|  값을 꼭 반환해야 하나?   |                      필수                       |                  필수 아님                  |
+|    SQL문에서 호출     |                      가능                       |                   불가능                   |
+|     트랜잭션 사용      |            대부분 불가능<br/>(Oracle 가능)            |                   가능                    |
+|     주 사용 목적      |                    복잡한 계산                     |                 비즈니스 로직                 |
+
+#### 비즈니스 로직 관점에서 프로시저의 단점 요약
+
+3티어 아키텍처는 `프론트 - WAS - DB` 이다.
+일반적으로 `비즈니스 로직`은 `WAS` 또는 `DB`에 작성된다.
+
+DB에 비즈니스 로직을 작성하는 것의 장단점을 말해보면
+(아래부터 DB 프로시저를 쓴다는 것은 DB에 비즈니스 로직을 둔다는 것이다)
+
+##### 장점 - DB 프로시저를 작성한다면?
+- 네트워크 응답 속도가 빨라진다.
+  - WAS에서 `쿼리를 여러 번` 보내는 걸 `프로시저 한 번`으로 해결하거나
+  - 수 많은 데이터를 응답하는데 프로시저에서 `필터링`하고 응답하는 것이다.
+- 애플리케이션에 `Transparent`하다.
+  - WAS에 비즈니스 로직이 있고 여러 인스턴스를 사용한다고 했을 때, 인스턴스 하나하나 확인하고 재기동해줘야 한다.
+  - 하지만, DB 프로시저를 이용하면 DB만 교체하면 되므로 `한 번에` 바꿀 수 있다.
+  - 이 부분은 **단점**으로 작용할 수 있다.(아래에서 확인)
+- `여러 서비스`에서 `재사용` 가능하다.
+  - `스프링`으로 작성된 서버 말고도 `Django` 또는 `nodejs` 서버가 하나씩 있다 했을 때, `각 프레임워크에 맞는 언어`로 비즈니스 로직을 작성해야 하지만 프로시저를 이용하면 그럴 필요가 없다.
+- 민감한 정보에 대한 접근을 제한할 수 있다.
+  - 데이터를 모두 DB에서 처리하고 저장하므로 서버에서의 `접근을 제한`할 수 있다.
+  - 이 부분은 쉽게 **뚫릴 수 있다.**(아래에서 확인)
+
+##### 단점 - DB 프로시저를 작성한다면?
+- 유지보수 비용이 커진다.
+  - WAS와 프로시저를 작성하기 위한 문법을 **모두 알아야**하므로 비용이 커진다.
+  - 프로시저의 **이름**이나 **인수**가 바뀌게되면 `WAS`도 고치며 `버전 관리`를 둘 다 해줘야 하므로 비용이 커진다.
+- `DB 서버 추가`가 **간단하지 않다.**
+  - 급격히 증가하는 트래픽으로 DB 서버를 추가했다. 하지만 텅 빈 DB이기 때문에 메인 DB에서 `복제`를 해야한다. 복제를 하는데 드는 시간은 굉장히 오래 걸린다. 몰려오는 트래픽과 DB 복제는 동시에 작업이 불가능하다.
+  - 🤔 **WAS라면?**
+    - WAS 서버 인스턴스를 늘리는 건 굉장히 쉽다. `오토 스케일링`을 이용하면 자동으로 자원을 보고 알아서 인스턴스 수를 줄여주고 늘려준다.
+- 프로시저가 항상 Transparent한 건 아니다.
+  - 프로시저의 Body만 변경이 되면 Transparent 하다.
+  - 하지만 프로시저의 이름이나 인수가 바뀌면 프로시저를 호출하는 WAS도 바꿔줘야 한다.
+- Transparent가 무조건 좋은 건 아니다.(`장점 - 애플리케이션에 Transparent하다.`의 단점)
+  - 만약, 프로시저를 바꿨는데 버그가 발생했다면 WAS 인스턴스가 여러 대인 경우 모든 서버에서 버그가 발생하는 것이다.
+  - 반대로 WAS에 비즈니스 로직을 작성하면 버그 발생률이 `1/N`으로 줄게된다.
+  - (그런데 이 부분은 틀리진 않았지만 애초에 테스트를 잘하고 버그가 없게 만들어야 하므로 약간 과장된 것 같다)
+- 민감한 정보에 대한 접근을 **완벽하게 제한할 순 없다.**
+  - 만약 악의적인 개발자가 프로시저에 값을 **반환**하도록 해서 사용하면 그냥 뚫리는 것이다.
+  - 그러므로 `담당자`나 `개발자`에게만 DB 혹은 테이블 `권한을 허용`하고 `민감한 정보`는 `암호화`하며, `보안 서약서` 등을 통해 `정책적`으로 보안을 강화하는 것이 좋다.
+
+##### WAS에서 응답 속도 향상하는 방법?
+- `비동기`를 활용한다.
+- `레디스`와 같은 `캐시`를 활용한다.
+
+##### 내가 생각하는 DB에 비즈니스 로직 작성하는 것의 단점
+`테스트`가 가장 큰 이유이다.
+- 자바는 테스트 프레임워크로 **JUnit**을 제공한다.
+- 테스트를 작성하기 굉장히 쉬우며, **모킹**이라는 기능도 제공하고 관련 자료도 많다.
+- 그리고 JUnit을 활용하여 테스트를 작성할 줄 아는 인력이 많다.
+- 또, **디버깅**이 굉장히 쉽다.
+
+### Trigger
+- 데이터베이스에서 어떤 이벤트(insert, update, delete)가 발생했을 때 자동적으로 실행되는 프로시저(procedure)
+
+#### 문법
+- `이전/이후`: `BEFORE` 또는 `AFTER`
+- `쿼리문`: `INSERT`, `UPDATE`, `DELETE`
+- `단위`: `FOR EACH ROW`, `FOR EACH STATEMENT`(PostgreSQL에서 가능, MySQL X, 쿼리문 단위)
+```mysql
+delimiter $$
+이전/이후 쿼리문
+ON 테이블 FOR 단위
+BEGIN
+    로직
+END
+$$
+delimiter ;
+```
+
+#### 예시1
+- USER의 닉네임 변경 UPDATE 발생 시 업데이트 전에 로그를 남기기
+```mysql
+delimiter $$
+CREATE TRIGGER log_user_nickname_trigger
+BEFORE UPDATE
+ON users FOR EACH ROW 
+BEGIN 
+  INSERT into users_log values(OLD.id, OLD.nickname, now());
+END
+$$
+delimiter ;
+```
+
+#### 예시2
+- 사용자가 마트에서 상품을 구매할 때마다 지금까지 누적된 구매 비용을 구하는 트리거
+```mysql
+delimiter $$
+CREATE TRIGGER sum_buy_prices_trigger
+AFTER INSERT
+ON buy FOR EACH ROW 
+BEGIN 
+  DECLARE total INT;
+  DECLARE _user_id INT DEFAULT NEW.user_id;
+  
+  select sum(price) into total from buy where user_id = _user_id;
+  update user_buy_stats set price_sum = total where user_id = _user_id;
+END
+$$
+delimiter ;
+```
+
+#### 다양한 쿼리를 한 번에 적용 (INSERT or UPDATE or DELETE)
+- 직원의 데이터가 변동될 때마다 `update_avg_empl_salary()` 함수 실행
+  - `update_avg_empl_salary()` 함수는 부서의 평균 연봉을 구하는 함수
+- `MySQL`은 **불가능**하며, `PostgreSQL`은 **가능**하다.
+- `PostgreSQL`은 함수를 부를 때 `EXECUTE FUNCTION` (`MySQL`은 `call`) 
+```postgresql
+CREATE TRIGGER avg_empl_salary_trigger
+  AFTER INSERT or UPDATE or DELETE
+  ON employee
+  FOR EACH ROW
+  EXECUTE FUNCTION update_avg_empl_salary();
+```
+
+#### FOR EACH STATEMENT 사용(MySQL은 불가능)
+- `FOR EACH ROW`는 각 행마다 트리거를 실행한다.
+- 만약, `UPDATE employee SET salary = 1.5 * salary WHERE dept_id = 1003;`을 실행하면?
+  - 부서 번호가 1003인 직원의 연봉을 1.5배 인상
+  - 부서 번호가 1003인 직원이 5명 -> 트리거는 5번 실행
+  - 한 번만 실행 되면 되는 트리거를 직원 수만큼 실행
+- `FOR EACH STATEMENT`는 변하는 행마다가 아닌 `쿼리마다`로 바꾼다. 
+```postgresql
+CREATE TRIGGER avg_empl_salary_trigger
+  AFTER INSERT or UPDATE or DELETE
+  ON employee
+  FOR EACH STATEMENT 
+  EXECUTE FUNCTION update_avg_empl_salary();
+```
+
+#### 상세 조건을 설정할 수 있다.(MySQL은 불가능)
+- 새로운 닉네임이 기존 닉네임과 중복되지 않으면 트리거를 실행한다.
+```postgresql
+CREATE TRIGGER log_user_nickname_trigger
+BEFORE UPDATE
+    ON users
+    FOR EACH ROW
+    WHEN (NEW.nickname IS DISTINCT FROM OLD.nickname)
+    EXECUTE FUNCTION log_user_nickname();
+```
+
+#### 트리거의 단점
+- 트리거는 소스 코드로 발견할 수 없기 때문에 파악하기 어려우며, 문제가 생겼을 때 대응하기 힘들어 유지보수가 힘들다.
+- 트리거가 연쇄적으로 작용할 수 있어 순환이 될 수 있다.
+
+### References
+- [쉬운코드 - BJ.39 Stored function](https://youtu.be/I1jjR58Rzic?si=wGhrt3BEXxNqFfcC)
+- [쉬운코드 - BJ.40-1 Stored Procedure](https://youtu.be/m2jx18yg8EA?si=j5fKbDGzPcdmVAE1)
+- [쉬운코드 - BJ.40-2 Stored Procedure](https://youtu.be/SOLm-GXFzG8?si=dWZVA4mkHmWCvNnU)
+- [쉬운코드 - BJ.41 SQL trigger](https://youtu.be/mEeGf4ZWQKI?si=b3n8iRAfmg9pOJYl)
