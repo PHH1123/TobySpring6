@@ -431,6 +431,149 @@ try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.get
 
 
 
+## Week 9~10
+
+### 예외
+
+> In computer programming, several programming language mechanisms exist for exception handling. The term exception is typically used to denote a data structure storing information about an exceptional condition. One mechanism to transfer control, or raise an exception, is known as a throw; the exception is said to be thrown. Execution is transferred to a catch.
+> 
+> [위키피디아 - Exception handling(programming)](https://en.wikipedia.org/wiki/Exception_handling_(programming))
+
+> - 예외는 정상적인 프로그램 흐름을 방해하는 사건
+> - 예외적인 상황에서만 사용
+> - 많은 경우 예외는 프로그램 오류, 버그 때문에 발생
+> 
+> -토비의 스프링6-
+
+#### Error
+- 시스템에 **비정상적인 상황**이 발생한 경우
+- **OutOfMemoryError**
+- **ThreadDeath**
+
+#### 체크 예외(Exception)
+- **catch나** **throws**가 `필수`
+- 초기 라이브러리의 잘못된 예외 설계/사용
+- 복구할 수 없다면 **RuntimeException**이나 적절한 추상화 레벨의 예외로 감싸서 던질 것
+
+#### 언체크 예외(RuntimeException)
+- **catch**나 **throws**가 `선택`
+
+#### 예외가 발생했을 때 대처
+- 예외 상황을 복구해서 정상적인 흐름으로 전환이 가능하도록
+  - **재시도**
+  - **대안**
+    - 예외가 발생하는 흐름이 아닌 다른 흐름으로 대처가 가능한가?
+- 버그인가?
+  - 코드의 버그?
+  - **클라이언트**의 버그?
+    - 클라이언트가 이해할 수 있는 예외 메시지를 넘긴다.
+- **제어할 수 없는 예외상황**
+  - DB에 문제가 생겼거나
+  - 그 외 개발자가 제어할 수 없는 예외 상황
+
+#### 예외를 잘못 다룬 코드
+**예외를 캐치하고 아무 것도 안함**
+```java
+try {
+    // 로직
+} catch(Exception e) {
+}
+```
+
+**예외를 받아서 그냥 콘솔에 띄우기만 함**
+```java
+try {
+    // 로직
+} catch(Exception e) {
+    e.printStackTrace();
+}
+```
+
+**무의미하고 무책임한 throws**
+```java
+public void method1() throws Exception {
+    method2();
+}
+
+public void method2() throws Exception {
+    method3();
+}
+
+public void method3() throws Exception {
+    throw new Exception();
+}
+```
+
+### JPA관련 간단한 용어 정리
+- JPA(Java Persistence API)는 자바에서 데이터베이스와 데이터를 주고받을 수 있는 도구
+  - 현재는 프로젝트 명이 바뀌어서 Jakarta Persistence API로 바뀜
+- DataSource
+  - 최하위 레벨로, DB랑 연결하기 위한 커넥션
+  - 싱글톤으로 관리됨
+  - JDBC안에 포함된 인터페이스
+- EntityManager
+  - JPA의 핵심 인터페이스
+  - 여기서 쿼리나 트랜잭션 모든 로직을 정의
+  - 팩토리 메서드인 `EntityManagerFactory`에서 생성
+- ORM
+  - JPA의 표준 추상화
+  - 객체와 RDB의 데이터를 매핑해주는 개념
+- Hibernate
+  - JPA(ORM)의 구현체
+- Repository
+  - DB랑 데이터를 주고받기 위한 자바에서 맨처음 호출하는 클래스
+
+#### 구조
+**Repository** -> **EntityManager** -> **Hibernate** -> **DataSource** -> **DB**
+
+### Smart Factory Bean
+팩토리 클래스를 정의하고 빈으로 등록하면 일반적으로는 팩토리 클래스가 주입된다.
+`org.springframework.beans.factory.SmartFactoryBean` 인터페이스를 구현한 클래스를 빈으로 등록해두면 해당 팩토리의 팩토리 메서드를 통해 객체가 주입된다.
+정확히는 `SmartFactoryBean.getObject()`에 반환되는 오브젝트가 나오는 것이다.
+
+하지만 과거 xml 시절에 사용하던 방식이고 현재는 `@Configuration`, `@Bean` 어노테이션 조합을 통해 직접 팩토리 클래스에서 생성한 후 주입하므로 자주 사용되지 않는다.
+
+### 더블 브레이스 초기화(Double Brace Initialization)
+객체를 생성함과 동시에 값을 초기화 또는 로직을 수행하도록 해주는 문법
+
+일단 `안티패턴`이다.
+
+`{}` 이것을 브라켓이라고 하는데
+첫 번째 브라켓은 객체의 생성자를 이용한 생성을
+두 번째 브라켓은 객체의 로직을 선언한다.
+
+**인터페이스를 익명 클래스로 생성**
+```java
+Map<Integer, String> map = new HashMap<>() {{
+    put(1, "영수");
+    put(2, "별이");
+}};
+```
+
+**클래스를 익명 클래스로 생성**
+```java
+HibernateJpaVendorAdapter jpaVendorAdapter = new HibernateJpaVendorAdapter() {{
+            setDatabase(Database.H2);
+            setGenerateDdl(true);
+            setShowSql(true);
+}};
+```
+
+#### 단점
+- 익명 클래스를 생성하기 때문에 불필요한 메모리만 잡아먹는다.
+- 이것보다는 차라리 팩토리 패턴을 사용하는 게 더 좋다고 한다.
+
+
+
+
+
+[//]: # (----------------------------------------------------------------------------------)
+
+
+
+
+
+
 # 쉬운코드
 쉬운코드 백발백중 영상 한 개 정리
 
@@ -1133,3 +1276,378 @@ BEFORE UPDATE
 - [쉬운코드 - BJ.40-1 Stored Procedure](https://youtu.be/m2jx18yg8EA?si=j5fKbDGzPcdmVAE1)
 - [쉬운코드 - BJ.40-2 Stored Procedure](https://youtu.be/SOLm-GXFzG8?si=dWZVA4mkHmWCvNnU)
 - [쉬운코드 - BJ.41 SQL trigger](https://youtu.be/mEeGf4ZWQKI?si=b3n8iRAfmg9pOJYl)
+
+
+
+
+
+[//]: # (----------------------------------------------------------------------------------)
+
+
+
+
+## Week 9~10
+
+### Serializability
+
+> 직렬화(直列化) 또는 시리얼라이제이션(serialization)은 컴퓨터 과학에서 데이터 구조나 객체를 다른 컴퓨터 환경에서 사용하도록 저장, 전송, 재구성할 수 있는 포맷으로 변환하는 과정이다.
+> 
+> 오브젝트를 직렬화하는 과정은 오브젝트를 마샬링한다고도 한다. 반대로, 일련의 바이트로부터 데이터 구조를 추출하는 일은 역직렬화 또는 디시리얼라이제이션(deserialization)이라고 한다.
+> 
+> [위키피디아 - 직렬화](https://ko.wikipedia.org/wiki/%EC%A7%81%EB%A0%AC%ED%99%94)
+
+> 직렬화 성질(Serializability), 즉 직렬화 가능성에 관한 설명이다.
+> 
+> 중앙 집중식 및 분산형 데이터베이스, 트랜잭션 처리(트랜잭션 관리) 및 다양한 트랜잭션 애플리케이션(예: 트랜잭션 메모리 및 소프트웨어 트랜잭션 메모리)의 동시성 제어에서 트랜잭션 스케줄은 결과(예: 결과 데이터베이스 상태)가 다음과 같은 경우 직렬화가 가능하다. 즉, 시간이 겹치지 않고 순차적으로 실행된 트랜잭션의 결과와 동일하다. 트랜잭션은 일반적으로 동시에 실행된다(겹침). 이것이 가장 효율적인 방법이기 때문이다. 직렬화 가능성은 동시 트랜잭션 실행에 대한 주요 정확성 기준이다. 이는 트랜잭션 간 격리의 최고 수준으로 간주되며 동시성 제어에 필수적인 역할을 한다. 따라서 모든 범용 데이터베이스 시스템에서 지원된다. SS2PL(강력한 2단계 잠금)은 1970년대 초기부터 대부분의 데이터베이스 시스템(다양한 변형)에서 널리 사용되는 직렬화 메커니즘이다.
+>
+> [위키피디아 - 직렬화 성질](https://ko.wikipedia.org/wiki/%EC%A7%81%EB%A0%AC%ED%99%94_%EC%84%B1%EC%A7%88)
+
+#### 시나리오
+**K가 H에게 20만원을 이체할 때, H도 ATM에서 본인 계좌에 30만원을 입금한다면?**
+
+아래처럼 4개의 스케줄이 나온다.
+![직렬화_시나리오_이미지](/readme-images/9-10/serializability1.png)
+
+여기서 숫자는 트랜잭션1, 2를 나타내고
+
+r은 Read, w는 Write, c는 Commit이다.
+
+스케줄1은 트랜잭션 1을 끝내고 트랜잭션 2를 순차적으로 수행하므로 직렬 스케줄(Serial Schedule)이다.
+
+마찬가지로 스케줄2도 트랜잭션 2를 끝내고 트랜잭션 1을 순차적으로 수행하므로 직렬 스케줄이다.
+
+스케줄3과 4는 트랜잭션 1을 수행하는 도중 트랜잭션 2가 수행된다.
+
+그러므로 스케줄3, 4는 비직렬 스케줄(Non-serial Schedule)이다.
+
+##### 직렬 스케줄과 비직렬 스케줄
+직렬 스케줄은 트랜잭션이 순차적으로 실행된다.
+비직렬 스케줄은 트랜잭션이 사이에 다른 트랜잭션이 실행된다.
+
+여기서 알아두어야 하는 것은 `Read/Write` 하는 과정이 `I/O` 하는 과정이라는 것이다.
+
+`I/O`는 CPU의 개입이 없다.
+
+즉, RAM과 SSD(또는 HDD)사이에서의 작업이다.
+그러면 CPU는 그냥 대기하게 된다.
+
+**직렬 스케줄**은 트랜잭션 하나하나마다 계속 `대기`를 하게 되고,
+**비직렬 스케줄**은 트랜잭션 사이에 다른 트랜잭션이 실행될 수 있으므로 `I/O`로 인해 `대기`를 하게 되면 `다른 트랜잭션` 작업을 하러간다.
+
+그래서 일반적으로 직렬 스케줄은 느리고 비직렬 스케줄은 빠르다. 실제로 직렬 스케줄은 굉장히 느려 사용하지 못한다.
+
+##### 비직렬 스케줄의 문제
+비직렬 스케줄은 결과를 예상할 수 없다.
+
+아래는 `데이터 A에 10을 더하는 트랜잭션1`, `10을 빼는 트랜잭션2` 시나리오다.
+- 트랜잭션1이 데이터 A를 Read 했다.(A=10)
+- 비직렬 스케줄이기 때문에 다음 트랜잭션2도 데이터 A를 Read 수행을 하러 갔다.(A=10)
+- 트랜잭션1이 데이터 A의 Write를 수행했다.(A <- 10+10)
+  - (그렇다면 트랜잭션2에 있는 Read된 데이터 A는 무슨 값인가? -> 10)
+- 트랜잭션2도 데이터 A의 Write를 수행했다.(A <- 10-10)
+
+원하는 결과는 10이지만, 실제 결과는 0이다.
+이렇게 값을 잃어버리는 것을 `Lost Update`라고 한다.
+
+##### 비직렬 스케줄 해결 방법
+그래서 나온 아이디어는 `직렬 스케줄과 비직렬 스케줄이 동일(equivalent)하면 된다` 라는 것에서 나왔다.
+그렇다면 비직렬 스케줄이 `Serializability` 속성을 가지면 된다.
+
+###### Conflict
+충돌은 세 종류가 있다.
+- Read -> Write
+- Write -> Read
+- Write -> Write
+- ❌ Read -> Read는 충돌이 아니다. (변하지 않기 때문, 멱등성)
+
+충돌하기 위한 필수 조건은 아래와 같다.
+- 서로 다른 트랜잭션에 소속
+- 같은 데이터에 접근
+- 최소 하나는 Write Operation(쓰기 작업)
+
+###### Conflict Equivalent
+충돌 동등하기 위한 필수 조건은 아래와 같다.
+- 두 스케줄은 같은 트랜잭션들을 가진다.
+- 모든 충돌 연산의 순서도 양쪽 스케줄 모두 동일하다.
+
+###### Conflict Serializable
+비직렬 스케줄이 직렬 스케줄과 충돌 동등하다면 충돌 직렬 가능하다고 한다.
+
+##### 헷갈리는 부분은 왜 갑자기 충돌이 나왔는가?
+값이 변하는 이유는 충돌의 순서에 따라 달라지기 때문이다.
+
+직렬 스케줄도 충돌이 가능하다.
+하지만 직렬 스케줄은 충돌의 순서가 다른 트랜잭션의 개입이 없기 때문에 원하는 결과가 나온다.
+
+비직렬 스케줄은 다른 트랜잭션의 개입이 존재할 수 있다. 그러므로 결과가 달라질 수 있다.
+
+##### 충돌 예시
+![충돌1](/readme-images/9-10/conflict1.png)
+- `r2(H) -> w1(H)` 는 읽기 후 쓰기 충돌이다.
+- `w2(H) -> r1(H)` 는 쓰기 후 읽기 충돌이다.
+- `w2(H) -> w1(H)` 는 쓰기 후 쓰기 충돌이다.
+
+##### 충돌 동등 예시
+![충돌동등1](/readme-images/9-10/conflict_equivalent.png)
+- 스케줄3(`Non-serial Schedule`)의 충돌 순서
+  - Read -> Write 충돌 (`r2(H) -> w1(H)`)
+  - Write -> Read 충돌 (`w2(H) -> r1(H)`)
+  - Write -> Write 충돌 (`w2(H) -> w1(H)`)
+- 스케줄2(`Serial Schedule`)의 충돌 순서
+  - Read -> Write 충돌 (`r2(H) -> w1(H)`)
+  - Write -> Read 충돌 (`w2(H) -> r1(H)`)
+  - Write -> Write 충돌 (`w2(H) -> w1(H)`)
+
+비직렬 스케줄인 스케줄3과 직렬 스케줄인 스케줄2의 모든 충돌 연산의 순서가 동일하다.
+그러므로 스케줄3은 충돌 동등하다.
+그러므로 스케줄3은 충돌 직렬화 가능하다.
+
+##### 충돌 직렬화 O/X 예시
+위의 충돌 동등 예시는 충돌 직렬화 가능 케이스이다.
+
+반대로 충돌 직렬화가 불가능한 케이스는 아래이다.
+
+###### 비직렬 스케줄4와 직렬 스케줄2
+![충돌직렬화1](/readme-images/9-10/conflict_serializable1.png)
+- 스케줄4(`Non-serial Schedule`)의 충돌 순서
+  - Read -> Write 충돌 (`r1(H) -> w2(H)`)
+  - Read -> Write 충돌 (`r2(H) -> w1(H)`)
+  - Write -> Write 충돌 (`w2(H) -> w1(H)`)
+- 스케줄2(`Serial Schedule`)의 충돌 순서
+  - Read -> Write 충돌 (`r2(H) -> w1(H)`)
+  - Write -> Read 충돌 (`w2(H) -> r1(H)`)
+  - Write -> Write 충돌 (`w2(H) -> w1(H)`)
+- 두 스케줄은 충돌 연산의 순서가 동일하지 않으므로 직렬화가 불가능하다.
+
+###### 비직렬 스케줄4와 직렬 스케줄1
+![충돌직렬화2](/readme-images/9-10/conflict_serializable2.png)
+- 스케줄4(`Non-serial Schedule`)의 충돌 순서
+  - Read -> Write 충돌 (`r1(H) -> w2(H)`)
+  - Read -> Write 충돌 (`r2(H) -> w1(H)`)
+  - Write -> Write 충돌 (`w2(H) -> w1(H)`)
+- 스케줄1(`Serial Schedule`)의 충돌 순서
+  - Read -> Write 충돌 (`r1(H) -> w2(H)`)
+  - Write -> Read 충돌 (`w1(H) -> r2(H)`)
+  - Write -> Write 충돌 (`w1(H) -> w2(H)`)
+- 두 스케줄은 충돌 연산의 순서가 동일하지 않으므로 직렬화가 불가능하다.
+
+### Recoverability
+
+`Recoverability`하다는 것은 복구 가능 즉, rollback이 가능한 것을 말한다.
+
+#### 시나리오
+**K가 H에게 20만원을 이체할 때 H도 본인에게 30만원을 입금했는데 만약 에러가 발생해 `rollback` 된다면?**
+
+##### Unrecoverable Schedule
+![복구가능성_시나리오1](/readme-images/9-10/recoverability1.png)
+- 트랜잭션1이 먼저 커밋되고, 트랜잭션 2가 이후에 롤백되는 상황이다.
+- 커밋이 되면 지속성(Durability)에 의해 롤백이 불가능하다.
+- 그래서 복구 불가능한 스케줄이다.
+- DB에서는 이를 허용하지 않는다.
+
+##### Recoverable Schedule
+그렇다면 복구 가능한 스케줄은?
+
+###### Cascading rollback
+- 둘다 커밋 되거나
+- 둘다 롤백 되거나
+- 그런데 이는 비용이 클 것이다.
+
+###### Cascadeless Schedule 
+이 방법은 `Commit/Rollback` 된 데이터만 `읽기를 허용`하자는 것이다.
+`cascadeless schedule`을 `avoid cascading rollback`이라고도 부른다.
+
+**Commit**된 데이터 읽기
+![cascadeless1](/readme-images/9-10/cascadeless1.png)
+
+**Rollback**된 데이터 읽기
+![cascadeless2](/readme-images/9-10/cascadeless2.png)
+
+###### Strict Schedule
+cascadeless를 뚫는 또 다른 시나리오가 있다.
+
+**H 사장님이 3만원이던 피자 가격을 2만원으로 낮추려는데 K 직원도 동일한 피자의 가격을 실수로 1만원으로 낮추려고 했을 때**
+
+❌ 불가능, **Cascadeless Schedule**
+![strict_schedule1](/readme-images/9-10/strict_schedule1.png)
+- 위는 `cascacdeless schedule`이라고 할 수 있다.
+- 하지만 `쓰기`를 막지 않으면 위처럼 `H 사장님 트랜잭션2`가 아예 사라지게 된다.
+- 그래서 `Strict Schedule`은 `Commit/Rollback` 된 데이터만 `읽기/쓰기`를 허용 하는 것이다.
+
+✅ **Strict Schedule**
+![strict_shcedule2](/readme-images/9-10/strict_schedule2.png)
+- 이렇게 하면 rollback할 때 recovery가 쉬워진다.
+- 트랜잭션을 이전 상태로만 되돌리면 된다.
+
+### Transaction Isolation Levels
+> Of the four ACID properties in a DBMS (Database Management System), the isolation property is the one most often relaxed. When attempting to maintain the highest level of isolation, a DBMS usually acquires locks on data which may result in a loss of concurrency, or implements multiversion concurrency control. This requires adding logic for the application to function correctly.
+> 
+> [위키피디아 - Isolation](https://en.wikipedia.org/wiki/Isolation_(database_systems)#Isolation_levels)
+
+RDBMS에서는 아래 상황들을 해결하기 위한 다양한 격리 레벨을 제공한다.
+
+#### 표준 SQL 기준
+
+##### Dirty Read
+![dirty-read](/readme-images/9-10/dirty_read.png)
+- x = 10이고 y = 20이다. 
+- 트랜잭션1은 x에 y를 더하고
+- 트랜잭션2는 y의 값을 70으로 바꿨다가 롤백을 한다.
+- 결과는 x=80, y=20이 된다.
+- 정상적인 상황이라면 x=30, y=20이어야 한다.
+
+`Dirty Read는 commit되지 않은 결과를 반영하는 것이다.`
+
+##### Non-repeatable Read
+![non-repeatable-read](/readme-images/9-10/nonrepeatable_read.png)
+- x = 10이다.
+- 트랜잭션1은 x를 두 번 읽는다.
+- 트랜잭션2는 x의 값을 50으로 바꾼다.
+- 트랜잭션1은 x의 값이 처음에는 10이었는데, 두 번째 읽을 때는 50이다.
+
+`Non-repeatable Read는 같은 데이터의 값이 달라지는 것이다.`
+`Fuzzy Read`라고도 한다.
+
+트랜잭션은 `ACID` 중 `isolation`에 의하면 트랜잭션끼리는 서로 `격리`되어야 한다.
+그런데 Read만 했음에도 불구하고 값이 바뀌었다.
+이는 발생해서는 안되는 일이다.
+
+##### Phantom Read
+![phantom-read](/readme-images/9-10/phantom-read.png)
+- t1 튜플은 v = 10인 데이터를 가진다.
+- t2 튜플은 v = 50인 데이터를 가진다.
+- 트랜잭션1은 v = 10인 데이터를 두 번 읽는다.
+- 트랜잭션2는 t2 튜플의 v를 50으로 바꾼다.
+- 처음 v = 10인 데이터를 읽을 때는 t1만 나왔는데 두 번째 읽을 때는 t1, t2가 나온다.
+
+`Phantom Read는 없던 데이터가 생기는 것이다.`
+
+위와 `Non-repeatable Read`와 마찬가지로 읽기만 했는데도 데이터가 바뀌었다.
+
+##### Non-repeatable Read와 Phantom Read의 차이
+- `Non-repeatable Read`는 값이 바뀌는 것이고 
+- `Phantom Read`는 값이 생기는 것
+
+#### SQL 확장 예시
+
+##### Dirty Write
+![dirty-write](/readme-images/9-10/dirty_write.png)
+- x = 0이다.
+- 트랜잭션1은 x의 값을 10으로 바꾼 뒤 **rollback**한다.
+- 트랜잭션2는 x의 값을 100으로 바꾼 뒤 **rollback**한다.
+- 동작 과정은 트랜잭션1이 **rollback**할 때 `0`이 되었다가
+- 트랜잭션2가 **rollback**을 하면 `0 -> 10`으로 바뀐다.
+- 그럼 최종 값은 `10`이 된다.
+- 만약 여기서 트랜잭션2가 롤백하지 않는다면 x는 0이 되었을 것이고 트랜잭션2는 무시될 것이다.
+
+`rollback 시 정상적인 recovery는 정말 중요하기 때문에 모든 isolation levels에서 Dirty Write를 허용하면 안된다.`
+
+##### Lost Update
+![lost-update](/readme-images/9-10/lost_update.png)
+- x = 50이다.
+- 트랜잭션1은 x에 50을 더한다.
+- 트랜잭션2는 x에 150을 더한다.
+- 위처럼 트랜잭션1이 나중에 커밋하면서 트랜잭션2의 변경 사항은 잃어버리게 된다.
+
+`Lost Update는 값을 덮어 쓰는 것이다.`
+
+##### Dirty Read 확장
+![dirty-read-expand](/readme-images/9-10/dirty_read_expand.png)
+- x = 50, y = 50이다.
+- 트랜잭션1은 x가 y에 40을 이체한다.
+- 트랜잭션2는 x와 y를 읽는다.
+- 트랜잭션2는 x와 y의 합이 60이지만, 실제 x와 y의 합은 100이다.
+
+`Dirty Read는 Rollback이 일어나지 않아도 발생할 수 있다.`
+
+##### Read Skew
+![read-skew](/readme-images/9-10/read_skew.png)
+- x = 50, y = 50이다.
+- 트랜잭션1은 x와 y를 읽는다.
+- 트랜잭션2는 x가 y에 40을 이체한다.
+- 트랜잭션1은 y의 합이 140이지만, 실제 x와 y의 합은 100이다.
+
+`Read Skew는 Inconsistent한 데이터를 읽는 것이다.`
+
+##### Write Skew
+![write-skew](/readme-images/9-10/write_skew.png)
+- x = 50, y = 50이다.
+- 트랜잭션1은 x에서 80을 인출한다.
+- 트랜잭션2는 y에서 90을 인출한다.
+- 제약 사항으로는 x + y는 0보다 커야 한다.
+- 트랜잭션1 기준 결과는 x + y = 20이고
+- 트랜잭션2 기준 결과는 x + y = 10이다.
+- 하지만 모두 커밋하고 나서 실제 결과는 -70이다.
+
+`Write Skew는 Inconsistent한 데이터를 쓰는 것이다.`
+
+##### Phantom Read 확장
+![phantom-read-expand](/readme-images/9-10/phantom_read_expand.png)
+- 튜플 t1의 v = 7이다.
+- cnt는 튜플의 v값이 10 초과하는 튜플의 개수이다.
+- 트랜잭션1은 v > 10인 데이터와 cnt를 읽는다.
+- 트랜잭션2는 v = 15 튜플 t2를 추가하고 cnt를 1 증가한다.
+- 트랜잭션1은 처음 v > 10을 읽었을 때는 0이지만 cnt를 읽을 때는 값이 1이다.
+
+#### Snapshot Isolation
+![snapshot-isolation](/readme-images/9-10/snapshot_isolation.png)
+- x = 50, y = 50이다.
+- 트랜잭션1은 x가 y에 40을 이체한다.
+- 트랜잭션2는 y에 100을 입금한다.
+- 결과는 트랜잭션1이 롤백된다.
+
+`스냅샷 격리`는 **트랜잭션이 시작**할 때 **스냅샷**을 찍는다.
+그리고 스냅샷을 기준으로 수행한다.
+만약 동일한 데이터를 수정하면 `먼저 커밋된 트랜잭션이 반영`되고 나중에 커밋하려고 하는 트랜잭션은 실제 값과 스냅샷 값을 비교하고 다르면 롤백된다.
+
+이는 `낙관적 락`과 같은 개념이다.
+
+#### RDBMS의 Isolation Levels
+
+##### MySQL (InnoDB)
+| Isolation Levels | Dirty Read | Non-repeatable Read | Phantom Read |
+|:----------------:|:----------:|:-------------------:|:------------:|
+| Read uncommitted |     O      |          O          |      O       |
+|  Read committed  |     X      |          O          |      O       |
+| Repeatable read |     X      |          X          |      O       |
+| Serializable |     X      |          X          |      X       |
+
+##### Oracle
+- 오라클은 Read uncommitted와 Repeatable read를 제공하지 않는다.
+- Repeatable read를 사용할 거라면 Serializable을 사용하면 된다.
+
+| Isolation Levels | Dirty Read | Non-repeatable Read | Phantom Read |
+|:----------------:|:----------:|:-------------------:|:------------:|
+| Read uncommitted |     -      |          -          |      -       |
+|  Read committed  |     X      |          O          |      O       |
+| Repeatable read |     -      |          -          |      -       |
+| Serializable |     X      |          X          |      X       |
+
+##### SQL Server
+| Isolation Levels | Dirty Read | Non-repeatable Read | Phantom Read |
+|:----------------:|:----------:|:-------------------:|:------------:|
+| Read uncommitted |     O      |          O          |      O       |
+|  Read committed  |     X      |          O          |      O       |
+| Repeatable read  |     X      |          X          |      O       |
+|     Snapshot     |     X      |          X          |      X       |
+|   Serializable   |     X      |          X          |      X       |
+
+##### PostgreSQL
+- 다른 RDBMS들은 Repeatable read에서 Phantom Read가 가능하지만 PostgreSQL은 불가능하다. 
+
+| Isolation Levels | Dirty Read | Non-repeatable Read | Phantom Read | Serialization Anomaly |
+|:----------------:|:----------:|:-------------------:|:------------:|:---------------------:|
+| Read uncommitted |     O      |          O          |      O       |           O           |
+|  Read committed  |     X      |          O          |      O       |           O           |
+| Repeatable read |     X      |          X          |      X       |           O           |
+| Serializable |     X      |          X          |      X       |           X           |
+
+
+### References
+- [쉬운코드 - BJ 43.1 Concurrency Control, Serializability](https://youtu.be/DwRN24nWbEc?si=2RFSCzRTltN0i_7N)
+- [쉬운코드 - BJ 43.2 Concurrency Control, Recoverability](https://youtu.be/89TZbhmo8zk?si=dF4T2Ph6prsn-87y)
+- [쉬운코드 - BJ 44 Isolation Levels](https://youtu.be/bLLarZTrebU?si=jyrc6jUHyDizaWMM)
+
+
+
+
