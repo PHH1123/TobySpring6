@@ -1458,9 +1458,11 @@ r은 Read, w는 Write, c는 Commit이다.
 `cascadeless schedule`을 `avoid cascading rollback`이라고도 부른다.
 
 **Commit**된 데이터 읽기
+
 ![cascadeless1](/readme-images/9-10/cascadeless1.png)
 
 **Rollback**된 데이터 읽기
+
 ![cascadeless2](/readme-images/9-10/cascadeless2.png)
 
 ###### Strict Schedule
@@ -1469,12 +1471,14 @@ cascadeless를 뚫는 또 다른 시나리오가 있다.
 **H 사장님이 3만원이던 피자 가격을 2만원으로 낮추려는데 K 직원도 동일한 피자의 가격을 실수로 1만원으로 낮추려고 했을 때**
 
 ❌ 불가능, **Cascadeless Schedule**
+
 ![strict_schedule1](/readme-images/9-10/strict_schedule1.png)
 - 위는 `cascacdeless schedule`이라고 할 수 있다.
 - 하지만 `쓰기`를 막지 않으면 위처럼 `H 사장님 트랜잭션2`가 아예 사라지게 된다.
 - 그래서 `Strict Schedule`은 `Commit/Rollback` 된 데이터만 `읽기/쓰기`를 허용 하는 것이다.
 
 ✅ **Strict Schedule**
+
 ![strict_shcedule2](/readme-images/9-10/strict_schedule2.png)
 - 이렇게 하면 rollback할 때 recovery가 쉬워진다.
 - 트랜잭션을 이전 상태로만 되돌리면 된다.
@@ -1642,12 +1646,239 @@ RDBMS에서는 아래 상황들을 해결하기 위한 다양한 격리 레벨�
 | Repeatable read |     X      |          X          |      X       |           O           |
 | Serializable |     X      |          X          |      X       |           X           |
 
+### 2PL
+
+#### Exclusive Lock / Shared Lock
+
+##### Exclusive Lock
+`Write Lock` 또는 `Exclusive Lock`이라고 한다.
+
+보통 쓰기 연산을 할 때 배타 락을 걸어 다른 트랜잭션에서 해당 데이터에 읽기/쓰기 연산 또는 공유 락/배타 락을 걸지 못하도록 한다.  
+(읽기 연산에도 Exclusive Lock을 걸 수 있다.)
+
+##### Shared Lock
+`Read Lock` 또는 `Shared Lock`이라고 한다.
+
+읽기 연산을 할 때 공유 락을 걸어 다른 트랜잭션에서 쓰기 연산 또는 배타 락을 걸지 못하도록 한다.
+(읽기 연산이나 공유 락을 거는 것은 가능하다)
+
+##### 시나리오1
+![exclusive-lock](/readme-images/9-10/2PL1.png)
+- 트랜잭션1은 x를 읽는다.
+- 트랜잭션2는 x를 20으로 바꾼다.
+- 제일 먼저, 트랜잭션1이 x에 공유 락을 건다.
+- 다음으로 트랜잭션2가 x에 배타 락을 건다. 하지만 공유 락이 걸려 있어 블록 상태가 된다.
+- 트랜잭션1이 언락을 하고 나면, 블록이던 트랜잭션2가 락을 획득하여 쓰기 연산을 수행한다.
+
+`쓰기 락은 어떠한 락과도 같이 사용할 수 없다.`
+
+##### 시나리오2
+![shared-lock](/readme-images/9-10/2PL2.png)
+- 트랜잭션1과 트랜잭션2는 x를 읽는다.
+- 트랜잭션1이 x에 공유 락을 건다.
+- 트랜잭션2도 x에 공유 락을 건다.
+- 모두 동시에 읽기 연산을 수행하고 락을 반납한다.
+
+`공유 락끼리는 동시에 락을 소유할 수 있다.`
+
+##### 배타락/공유락 호환성
+|                | Shared-Lock | Exclusive-Lock |
+|:--------------:|:-----------:|:--------------:|
+|  **Shared-Lock**   |      O      |       X        |
+| **Exclusive-Lock** |      X      |       X        |
+
+#### 락을 써도 생기는 문제 `동시성`
+![nonserializable](/readme-images/9-10/2PL3.png)
+- 트랜잭션1과 트랜잭션2는 x와 y의 합을 x에 저장한다.
+- 충돌 연산의 순서가 직렬 스케줄과 달라 직렬화될 수 없다.
+- 또, 흐름만 보더라도 `Write Skew`가 발생한다.
+
+![serializable](/readme-images/9-10/2PL4.png)
+- 둘의 순서만 바꾸어주어도 이게 해결된다.
+- 이 것을 `2PL` 프로토콜이라고 부른다.
+
+#### 2PL 프로토콜
+`2PL(two-phase locking)` 프로토콜은 tx에서 모든 Lock 연산을 Unlock 연산보다 먼저 수행되도록 하는 것이다.
+즉, 모든 Lock 연산 이후에 Unlock 연산을 수행하도록 하는 것이다.
+
+여기서 **Lock** 연산을 수행하는 구간을 `Expanding phase` 또는 `Growing phase` 라고 부르며,
+**Unlock** 연산을 수행하는 구간을 `Shrinking phase` 또는 `Contracting phase`라고 부른다.
+
+##### 데드락
+![2PL-deadlock](/readme-images/9-10/2PL5_deadlock.png)
+- 트랜잭션1는 x와 y의 합을 y에 저장한다.
+- 트랜잭션2는 x와 y의 합을 x에 저장한다.
+- 서로 처음에 공유 락을 건다.
+- 그리고 나중에 쓰기 락을 거는데 공유 락이 있어 블록 상태가 된다.
+- 하지만 서로 놓아주지 못해 데드락 상태에 빠지게 된다.
+
+##### Conservative 2PL
+![conservative-2pl](/readme-images/9-10/conservative-2PL.png)
+- 처음부터 사용할 모든 자원에 락을 취득하고 트랜잭션을 시작하는 것이다.
+- 데드락에 안전하다.
+- 실용적이지 않다.
+
+##### Strict 2PL(S2PL)
+![s2pl](/readme-images/9-10/s2pl.png)
+- `Strict Schedule`을 보장하는 2PL이다.
+- `Recoverability`를 보장한다.
+- `Exclusive Lock`을 `커밋/롤백`될 때 반환한다.
+
+##### Strong Strict 2PL(SS2PL)
+![ss2pl](/readme-images/9-10/ss2pl.png)
+- `Strict Schedule`을 보장하는 2PL이다.
+- `Recoverability`를 보장한다.
+- `Exclusive Lock`과 `Shared Lock`을 `커밋/롤백`될 때 반환한다.
+- `S2PL`보다 구현이 쉽다.
+
+### MVCC 가기 전 흐름 정리
+
+결국엔 모두 동시성을 제어하는 게 목적이다.
+
+- Isolation Levels는 총 네 개(Read Uncommitted, Read Committed, Repeatable Read, Serializable)이다.
+- `Isolation Levels`는 Dirty Read, Non-repeatable Read, Phantom Read 등을 막을 수 있는 레벨을 정의한 `명세`같은 것이다.
+- 실제로 저걸 `구현한 메커니즘`은 `배타 락`과 `공유 락`을 이용한 `S2PL`, `SS2PL` 또는 `스냅샷`을 이용한 `MVCC`이다.
+- 그럼 여기서 `애플리케이션`에서 적용하는 동시성 제어는?
+  - 일반적으로 DB 기본 격리 수준은 Repeatable Read(MySQL/InnoDB) 또는 Read Committed(PostgreSQL, Oracle, SQL Server)이다.
+  - 이것은 쓰기 연산의 경우 S2PL로 배타 락을 커밋/롤백 까지만 유지해 막았지만 읽기 연산은 공유 락을 엄격하게 걸지 않았다.
+    - 마지막 공유 락 부분은 정확히 InnoDB는 MVCC를 사용해 공유 락 자체를 사용하지 않음
+  - 그래서 `Lost Update`나 `Write Skew`가 발생할 수 있다.
+  - 그러면 이를 격리 수준을 Serializable로 올려 가장 강한 격리 수준을 사용하도록 만들면 되는 거 아닌가?
+    - 모든 곳에 그렇게 적용하면 엄청 느려질 것이다.
+    - 만약, 적용할 거라면 부분적으로 적용하는 것이 좋다.
+    - 그래서 비관적 락 또는 낙관적 락 또는 원자적/상태 UPDATE 방식으로 애플리케이션에서 동시성을 제어한다.
+
+  
+### MVCC
+
+#### MVCC란?
+> 다중 버전 동시성 제어(multiversion concurrency control, MCC, MVCC), 다중 버전 병행 수행 제어는 데이터베이스 관리 시스템이 일반적으로 사용하는 동시성 제어 방식으로, 데이터베이스로의 동시 접근을 제공하고 프로그래밍 언어에서 트랜잭셔널 메모리를 구현한다.
+> 
+> [위키피디아 - 다중 버전 동시성 제어](https://ko.wikipedia.org/wiki/%EB%8B%A4%EC%A4%91_%EB%B2%84%EC%A0%84_%EB%8F%99%EC%8B%9C%EC%84%B1_%EC%A0%9C%EC%96%B4)
+
+쉽게 말해, `MVCC(MultiVersion Concurrency Control)`는 스냅샷을 통해 동시성을 제어하는 방법이다.
+
+#### MVCC를 사용하는 이유
+
+공유 락을 먼저 취득하면 그 데이터의 배타 락을 취득하지 못한다.
+반대로 배타 락을 먼저 취득하더라도 공유 락을 취득하지 못한다.
+
+이 것은 퍼포먼스를 낮추는 원인이 된다.
+
+> 그렇다면 MVCC는 무엇이고 사용하게 되면 퍼포먼스를 증가할 수 있을까?
+
+결론부터 먼저 말하면, MVCC는 공유 락을 사용하지 않으며, read와 write는 서로 블록하지 않기 때문에 배타 락과 동시에 사용할 수 있다.
+즉, 배타 락을 취득한 데이터에 대해 읽기가 가능하고 공유 락을 사용하지 않기 때문에 Read한 데이터에 대해서도 배타 락을 취득하는 게 가능해진다.
+
+> MVCC: 데이터를 읽을 때 **특정 시점 기준**으로 **가장 최근에 Commit**된 데이터 읽는다.
+> 
+> MySQL에서는 특정 시점 기준으로 Read하는 것을 `Consistent Read`라고 한다.
+
+- 공유 락 사용
+
+  |           | Read | Write |
+  |:---------:|:----:|:-----:|
+  | **Read**  |  O   |   X   |
+  | **Write** |  X   |   X   |
+- MVCC 사용
+
+  |           | Read | Write |
+  |:---------:|:----:|:-----:|
+  | **Read**  |  O   |   O   |
+  | **Write** |  O   |   X   |
+
+MVCC는 스냅샷을 찍어 비교를 통해 동시성을 제어한다.
+예를 들어, 격리 수준이 Read Committed인 경우의 MVCC는 Read를 했을 때의 스냅샷을 찍는다. 그리고 Write를 하면 바로 바뀌는 것이 아니라 별도의 공간에 저장한다. 그리고 나중에 커밋을 하게 되면 그때 실제 DB에 반영한다.
+(격리 수준에 따라 MVCC 방식이 달라진다)(또한, 실제로 Write를 하면 별도 공간에 저장되는 것은 기존의 데이터들이다. 즉, 진짜로 데이터가 즉시 바뀌는 것이고 이전 버전을 별도 공간에 저장하고 문제가 발생하면 이전 버전으로 undo, rollback 하는 것이다.)
+
+#### Read Uncommitted MVCC
+
+- MySQL에서 해당 격리 수준에서는 MVCC가 적용되지 않는다.
+- PostgreSQL에서는 Read Committed와 똑같은 MVCC가 적용된다.
+
+#### Read Committed MVCC
+
+Read하는 시간을 기준으로 그 전 Commit된 데이터를 읽는다.
+
+##### PostgreSQL
+
+![postgresql-read-committed2](/readme-images/9-10/postgre_read1.png)
+- 트랜잭션1이 먼저 배타 락을 취득해 작동한다.
+- 별도 공간에 x=10, y=50을 저장하고 커밋한 후 배타 락을 반납한다.
+
+![postgresql-read-committed1](/readme-images/9-10/postgre_read2.png)
+- 위에서 반납된 배타 락을 트랜잭션2가 취득한다.
+  - 격리 수준이 `Read Committed`라서 이미 `read(x) -> 50`에서 가져와 잘못된 것을 잡지 못한다.
+  - 사실 상 Read Committed으로는 다른 트랜잭션의 동시 변경을 잡지 못한다.(대기는 별도 배타 락으로 동작하므로 작동함)
+- 이후 별도 공간에 x=80을 저장하고 커밋한 후 배타 락을 반납한다.
+- 최종 결과는 x=80, y=50이다.
+- 우리가 예상했던 결과는 x=40, y=50이다.
+- `Lost Update`가 발생한 것이다.
+
+#### Repeatable Read MVCC
+
+트랜잭션 시작 시간을 기준으로 그 전에 Commit된 데이터를 읽는다.
+
+##### PostgreSQL
+
+![postgresql-repeatable-read1](/readme-images/9-10/postgre-repeatable1.png)
+- 제일 먼저 `Read Committed`때와 마찬가지로 트랜잭션1이 동작한다.
+
+![postgresql-repeatable-read2](/readme-images/9-10/postgre-repeatable2.png)
+- 트랜잭션2는 격리 수준이 `Repeatable Read`이다.
+- 그래서 같은 데이터에 먼저 Update한 트랜잭션이 Commit하면 나중 트랜잭션은 롤백이 되고, 애플리케이션에서 재시도 로직이 필요할 수 있다.
+- 이런 특징을 `First-Updater-Win`이라고 한다.
+
+##### MySQL
+
+- 제일 먼저, MySQL은 Repeatable Read에서 `Lost Update`와 `Write Skew`를 막아주지 못한다.
+- 그래서 `SQL`에 `FOR UPDATE` 키워드를 사용하여 `배타 락`을 취득하여 사용해야 한다.
+- 여기서 `FOR UPDATE/SHARE`를 이용하여 `배타 락을 취득`하는 걸 `Locking Read`라고 한다.
+  - 락을 이용하지 않고 스냅샷을 읽는 것을 `Consistent Read`라고 한다.
+- 또, 원래 `Repeatable Read`는 **트랜잭션이 시작했을 때**를 기준으로 커밋된 데이터를 읽는다.
+- 하지만 `Locking Read`방식을 사용하면 **가장 최근의 커밋된 데이터**를 읽는다.
+- 추가로 `FOR SHARE` 키워드는 공유 락을 취득하는 키워드이다.
+
+###### MySQL Lost Update 해결
+![mysql-repeatable-read-lostupdate](/readme-images/9-10/mysql-repeatable-lostupdate.png)
+- 트랜잭션1은 x를 `Locking Read`를 통해 배타 락을 취득한다.
+- 트랜잭션2도 x에 `Locking Read`를 하지만 트랜잭션1이 먼저 배타 락을 취득하여 **블록**된다.
+- 트랜잭션1은 x=80을 쓰고 커밋한 후 배타 락을 반납한다.
+- 트랜잭션2는 x를 읽는다. 그런데 `Repeatable Read`는 트랜잭션 시작에서 값을 읽어와 x=50이어야 하지만 `Locking Read(FOR UPDATE)`에서는 **가장 최근에 커밋**된 데이터를 읽어온다. 그러므로 x=80을 읽어온다.
+- 이후 x=40을 쓰고 y에도 `Locking Read`를 통해 읽어오며 배타 락을 취득한다.
+- 마찬가지로 y=50을 쓰고 커밋한다.
+
+###### MySQL Write Skew 해결
+![mysql-repeatable-read-writeskew](/readme-images/9-10/mysql-repeatable-writeskew.png)
+- 트랜잭션1은 x를 `Locking Read`를 통해 배타 락을 취득한다.
+- 트랜잭션2도 x에 `Locking Read`를 하지만 트랜잭션1이 먼저 배타 락을 취득하여 **블록**된다.
+- 트랜잭션1은 y도 `Locking Read`를 통해 배타 락을 취득한다.
+- 트랜잭션1은 x=20을 쓰고 커밋한 후 배타 락을 반납한다.
+- 트랙잭션2는 x를 읽는다. `Locking Read`이기 때문에 **가장 최근 커밋**된 x를 읽는다. 그러므로 20이다.
+- 트랜잭션2는 y도 `Locking Read`를 통해 배타 락을 취득한다.
+- 트랜잭션2는 y=30을 쓰고 커밋한 후 배타 락을 반납한다.
+
+##### PostgreSQL의 격리 수준이 `Repeatable Read`일 때 `FOR UPDATE` MySQL과의 동작 차이
+- 대부분의 DB에서도 `FOR UPDATE`, `FOR SHARE` 문법이 있어 직접 락을 취득할 수 있다.
+- 하지만 PostgreSQL은 MySQL과 동작 방식이 조금 다르다.
+- PostgreSQL은 격리 수준이 `Repeatable Read`인 경우 같은 데이터를 먼저 Update하는 다른 트랜잭션이 있으면 롤백을 한다.
+- 이것은 `FOR UPDATE/SHARE`를 쓴다고 해도 달라지지 않는다.
+- 그래서 `PostgreSQL은 격리 수준이 Repeatable Read 이상인 경우에 FOR UPDATE를 사용할 때 재시도 로직이 필요하다.`
+
+#### Serializable MVCC
+
+- **MySQL**에서는 `autocommit`이 꺼진 트랜잭션 안의 `Select 쿼리`에 대해 **Shared Lock**으로 동작한다.
+  - 배타 락으로도 동작할 수 있지만 성능 상의 이유로 `Shared Lock`을 사용한다고 한다.
+  - 하지만 Shared Lock을 사용하므로 `데드락`의 위험이 있다.
+- **PostgreSQL**에서는 `SSI(Serializable Snapshot Isolation)` 기법이 적용된 MVCC로 동작한다.
 
 ### References
 - [쉬운코드 - BJ 43.1 Concurrency Control, Serializability](https://youtu.be/DwRN24nWbEc?si=2RFSCzRTltN0i_7N)
 - [쉬운코드 - BJ 43.2 Concurrency Control, Recoverability](https://youtu.be/89TZbhmo8zk?si=dF4T2Ph6prsn-87y)
 - [쉬운코드 - BJ 44 Isolation Levels](https://youtu.be/bLLarZTrebU?si=jyrc6jUHyDizaWMM)
-
+- [쉬운코드 - BJ 45 Lock, 2PL](https://youtu.be/0PScmeO3Fig?si=W3OYlOTwy9GdZhrP)
+- [쉬운코드 - BJ 46.1 MVCC](https://youtu.be/wiVvVanI3p4?si=xtTVRkCLfmAn8fRK)
+- [쉬운코드 - BJ 46.2 MVCC](https://youtu.be/-kJ3fxqFmqA?si=JcTE5T1V2aWUxGCI)
 
 
 
